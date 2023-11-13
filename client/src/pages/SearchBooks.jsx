@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
 import { Container, Col, Form, Button, Card, Row } from "react-bootstrap";
 
+import { Link } from "react-router-dom";
+
 import Auth from "../utils/auth";
 import { saveBook, searchGoogleBooks } from "../utils/API";
 import { saveBookIds, getSavedBookIds } from "../utils/localStorage";
+
+import { useMutation } from "@apollo/client";
+import { SAVE_BOOK } from "../utils/mutations";
 
 const SearchBooks = () => {
   // create state for holding returned google api data
@@ -43,6 +48,7 @@ const SearchBooks = () => {
         title: book.volumeInfo.title,
         description: book.volumeInfo.description,
         image: book.volumeInfo.imageLinks?.thumbnail || "",
+        url: book.saleInfo.buyLink || ""
       }));
 
       setSearchedBooks(bookData);
@@ -51,6 +57,9 @@ const SearchBooks = () => {
       console.error(err);
     }
   };
+
+  //Use the Apollo useMutation() Hook to execute the SAVE_BOOK mutation in the handleSaveBook() function instead of the saveBook() function imported from the API file.
+  const [saveBook] = useMutation(SAVE_BOOK);
 
   // create function to handle saving a book to our database
   const handleSaveBook = async (bookId) => {
@@ -65,11 +74,9 @@ const SearchBooks = () => {
     }
 
     try {
-      const response = await saveBook(bookToSave, token);
-
-      if (!response.ok) {
-        throw new Error("something went wrong!");
-      }
+      await saveBook({
+        variables: { ...bookToSave },
+      });
 
       // if book successfully saves to user's account, save book id to state
       setSavedBookIds([...savedBookIds, bookToSave.bookId]);
@@ -143,6 +150,9 @@ const SearchBooks = () => {
                       </Button>
                     )}
                   </Card.Body>
+                  <Link to={book.url}>
+                    <Button className="btn-block btn-info">Buy the book</Button>
+                  </Link>
                 </Card>
               </Col>
             );
